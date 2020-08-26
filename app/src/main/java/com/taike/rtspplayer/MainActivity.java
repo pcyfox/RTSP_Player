@@ -60,11 +60,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults[0] == 0 && grantResults[1] == 0) {
-            Log.d("-----", "permissions is good");
         } else {
-            Intent MyIntent = new Intent(Intent.ACTION_MAIN);
-            MyIntent.addCategory(Intent.CATEGORY_HOME);
-            startActivity(MyIntent);
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addCategory(Intent.CATEGORY_HOME);
+            startActivity(intent);
             System.exit(0);
         }
     }

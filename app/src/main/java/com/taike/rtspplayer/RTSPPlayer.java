@@ -31,7 +31,7 @@ public class RTSPPlayer {
     private RtspClient client;
     private BlockingQueue<byte[]> video_data_Queue = new ArrayBlockingQueue<>(1000);
     private MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-    private ExecutorService threadPool = Executors.newFixedThreadPool(3);
+    private ExecutorService threadPool;
 
     //MediaCodec variable
     private volatile boolean isPlaying = false;
@@ -45,8 +45,15 @@ public class RTSPPlayer {
 
     public RTSPPlayer(Surface surface) {
         this.surface = surface;
+        initThreadPool();
         initMediaCodec();
         initRtspClient();
+    }
+
+    private void initThreadPool() {
+        if (threadPool == null || threadPool.isShutdown()) {
+            threadPool = Executors.newFixedThreadPool(3);
+        }
     }
 
     private void initRtspClient() {
@@ -67,7 +74,7 @@ public class RTSPPlayer {
 
             @Override
             public void onConnectionFailedRtsp(String reason) {
-                Log.d(TAG, "onConnectionFailedRtsp() called with: reason = [" + reason + "]");
+                Log.e(TAG, "onConnectionFailedRtsp() called with: reason = [" + reason + "]");
             }
 
             @Override
@@ -110,9 +117,8 @@ public class RTSPPlayer {
     开始播放
      */
     public void startPlay() {
-        if (mediaCodec == null) {
-            initMediaCodec();
-        }
+        initMediaCodec();
+        initThreadPool();
         if (isPlaying) {
             Log.e(TAG, "start play failed.player is playing.");
         } else {
@@ -134,6 +140,9 @@ public class RTSPPlayer {
     初始化MediaCodec
      */
     private void initMediaCodec() {
+        if (mediaCodec != null) {
+            return;
+        }
         try {
             MediaFormat mediaFormat = MediaFormat.createVideoFormat(MIME_TYPE, 1920, 1080);
             mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);
@@ -211,7 +220,14 @@ public class RTSPPlayer {
                 mediaCodec = null;
             }
         };
-        threadPool.submit(decoder);
+        submit(decoder);
+    }
+
+    private void submit(Runnable runnable) {
+        if (threadPool == null || threadPool.isShutdown() || threadPool.isTerminated()) {
+            return;
+        }
+        threadPool.submit(runnable);
     }
 
     public byte[] decodeValue(ByteBuffer bytes) {
@@ -225,7 +241,7 @@ public class RTSPPlayer {
     开启RTSP收包线程
      */
     private void startHandleData() {
-        threadPool.submit(new Runnable() {
+        submit(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -253,7 +269,7 @@ public class RTSPPlayer {
     }
 
     private void keepConnect() {
-        threadPool.submit(new Runnable() {
+        submit(new Runnable() {
             @Override
             public void run() {
                 while (isPlaying) {
@@ -390,6 +406,14 @@ public class RTSPPlayer {
                 Log.e(TAG, "udp port receive stream failed.");
             }
         }
+    }
+
+    public void setVideoClientPorts(int[] videoClientPorts) {
+        client.setVideoClientPorts(videoClientPorts);
+    }
+
+    public void setAudioClientPorts(int[] audioClientPorts) {
+        client.setAudioClientPorts(audioClientPorts);
     }
 
     public void setCodecBufferInfoListener(CodecBufferInfoListener codecBufferInfoListener) {

@@ -135,8 +135,16 @@ public class RtspClient {
 
             String host = rtspMatcher.group(1);
             int port = Integer.parseInt((rtspMatcher.group(2) != null) ? rtspMatcher.group(2) : "554");
-            String path = "/" + rtspMatcher.group(3) + "/" + rtspMatcher.group(4);
-            commandsManager.setUrl(host, port, path);
+            String group4 = rtspMatcher.group(4);
+
+            if (!TextUtils.isEmpty(group4)) {
+                String path = "/" + rtspMatcher.group(3) + "/" + rtspMatcher.group(4);
+                commandsManager.setUrl(host, port, path);
+            } else {
+                String path = "/" + rtspMatcher.group(3);
+                commandsManager.setUrl(host, port, path);
+            }
+
 
             thread = new Thread(new Runnable() {
                 @Override
@@ -185,11 +193,12 @@ public class RtspClient {
                                     connectCheckerRtsp.onAuthErrorRtsp();
                                     return;
                                 } else if (statusAuth == 200) {
+                                    connectCheckerRtsp.onAuthSuccessRtsp();
                                     writer.write(commandsManager.createSetup(commandsManager.getTrackVideo()));
                                     writer.flush();
-                                    String traceVideoResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, true);
-                                    int traceVideoStatus = commandsManager.getResponseStatus(traceVideoResp);
-                                    if (traceVideoStatus == 200) {
+                                    String setupResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, true);
+                                    int setUpStatus = commandsManager.getResponseStatus(setupResp);
+                                    if (setUpStatus == 200) {
                                         writer.write(commandsManager.sendPlay());
                                         writer.flush();
                                         String sendPlayResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, true);
@@ -198,20 +207,15 @@ public class RtspClient {
                                             connectCheckerRtsp.onCanPlay(commandsManager.getSessionId(), commandsManager.getVideoClientPorts());
                                         }
                                     }
-                                    connectCheckerRtsp.onAuthSuccessRtsp();
-                                } else {
-                                    connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, announce with auth failed");
                                 }
                             }
-                        } else if (status != 200) {
-                            connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, announce failed");
                         }
                         streaming = true;
                         reTries = numRetry;
                         connectCheckerRtsp.onConnectionSuccessRtsp();
                     } catch (IOException | NullPointerException e) {
                         Log.e(TAG, "connection error", e);
-                        connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, " + e.getMessage());
+                        connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream Exception:, " + e.getMessage());
                         streaming = false;
                     }
                 }
@@ -276,6 +280,15 @@ public class RtspClient {
             reTries = 0;
             connectCheckerRtsp.onDisconnectRtsp();
         }
+    }
+
+
+    public void setVideoClientPorts(int[] videoClientPorts) {
+        commandsManager.setVideoClientPorts(videoClientPorts);
+    }
+
+    public void setAudioClientPorts(int[] audioClientPorts) {
+        commandsManager.setAudioClientPorts(audioClientPorts);
     }
 
 

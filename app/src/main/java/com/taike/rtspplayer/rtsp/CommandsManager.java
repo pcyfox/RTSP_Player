@@ -1,5 +1,6 @@
 package com.taike.rtspplayer.rtsp;
 
+import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 
@@ -35,8 +36,8 @@ public class CommandsManager {
     private boolean isOnlyAudio = true;
 
     //For udp
-    public static final int[] audioClientPorts = new int[]{5000, 5001};
-    public static final int[] videoClientPorts = new int[]{5002, 5003};
+    public int[] audioClientPorts = new int[]{5000, 5001};
+    public int[] videoClientPorts = new int[]{5002, 5003};
 
     private int[] audioServerPorts = new int[]{5004, 5005};
     private int[] videoServerPorts = new int[]{5006, 5007};
@@ -49,6 +50,11 @@ public class CommandsManager {
 
     public String getUrl() {
         return "rtsp://" + host + ":" + port + path;
+    }
+
+    public String getUrlWithAuth() {
+        String auth = TextUtils.isEmpty(user) ? "" : user + ":" + password + "@";
+        return "rtsp://" + auth + host + ":" + port + path;
     }
 
     public CommandsManager() {
@@ -104,6 +110,7 @@ public class CommandsManager {
     }
 
     public void setUrl(String host, int port, String path) {
+        Log.d(TAG, "setUrl() called with: host = [" + host + "], port = [" + port + "], path = [" + path + "]");
         this.host = host;
         this.port = port;
         this.path = path;
@@ -156,6 +163,23 @@ public class CommandsManager {
     public int[] getAudioClientPorts() {
         return audioClientPorts;
     }
+
+    public void setVideoServerPorts(int[] videoServerPorts) {
+        this.videoServerPorts = videoServerPorts;
+    }
+
+    public void setVideoClientPorts(int[] videoClientPorts) {
+        this.videoClientPorts = videoClientPorts;
+    }
+
+    public void setAudioClientPorts(int[] audioClientPorts) {
+        this.audioClientPorts = audioClientPorts;
+    }
+
+    public void setAudioServerPorts(int[] audioServerPorts) {
+        this.audioServerPorts = audioServerPorts;
+    }
+
 
     public int[] getVideoClientPorts() {
         return videoClientPorts;
@@ -245,13 +269,12 @@ public class CommandsManager {
         Matcher matcher = authPattern.matcher(authResponse);
         //digest auth
         if (matcher.find()) {
-            Log.i(TAG, "using digest auth");
             String realm = matcher.group(1);
             String nonce = matcher.group(2);
             String hash1 = AuthUtil.getMd5Hash(user + ":" + realm + ":" + password);
             String hash2 = AuthUtil.getMd5Hash("DESCRIBE:" + getUrl());
             String hash3 = AuthUtil.getMd5Hash(hash1 + ":" + nonce + ":" + hash2);
-            return "Digest username=\""
+            String digest = "Digest username=\""
                     + user
                     + "\",realm=\""
                     + realm
@@ -265,6 +288,8 @@ public class CommandsManager {
                     + "\",response=\""
                     + hash3
                     + "\"";
+            Log.i(TAG, "using digest auth digest--------->" + digest);
+            return digest;
             //basic auth
         } else {
             Log.i(TAG, "using basic auth");
@@ -288,7 +313,7 @@ public class CommandsManager {
     public String createDescribe() {
         String describe =
                 "DESCRIBE rtsp://" + host + ":" + port + path + " RTSP/1.0\r\n" + addHeaders();
-        Log.i(TAG, "describe:" + describe);
+        Log.i(TAG, "DESCRIBE-------->" + describe);
         return describe;
     }
 
@@ -301,23 +326,29 @@ public class CommandsManager {
     public String createSetup(int track) {
 
         int[] udpPorts = track == trackVideo ? videoClientPorts : audioClientPorts;
-        String params = (protocol == Protocol.UDP) ? ("UDP;unicast;client_port=" + udpPorts[0] + "-" + udpPorts[1] + ";mode=record")
-                : ("TCP;interleaved=" + 2 * track + "-" + (2 * track + 1) + ";mode=record");
-        String setup = "SETUP rtsp://"
-                + host
-                + ":"
-                + port
-                + path
-                + "/trackID="
-                + track
-                + " RTSP/1.0\r\n"
-                + "Transport: RTP/AVP/"
-                + params
-                + "\r\n"
-                + addHeaders();
-        Log.i(TAG, "createSetup:" + setup);
+
+        String setup =
+                "SETUP " + getUrlWithAuth() + " RTSP/1.0\r\n"
+                        + "Transport: RTP/AVP;unicast;client_port=" + udpPorts[0] + "-" + udpPorts[1] + "\r\n"
+                        + addHeaders();
+        Log.i(TAG, "SETUP------------>" + setup);
         return setup;
+
+//        String params = (protocol == Protocol.UDP) ? ("UDP;unicast;client_port=" + udpPorts[0] + "-" + udpPorts[1])
+//                : ("TCP;interleaved=" + 2 * track + "-" + (2 * track + 1) + ";mode=record");
+//        String setup = "SETUP "
+//                + getUrlWithAuth()
+//                + "/trackID="
+//                + track
+//                + " RTSP/1.0\r\n"
+//                + "Transport: RTP/AVP/"
+//                + params
+//                + "\r\n"
+//                + addHeaders();
+//        Log.i(TAG, "SETUP------------>:" + setup);
+   //     return setup;
     }
+
 
     public String createRecord() {
         String record = "RECORD rtsp://"
@@ -337,7 +368,7 @@ public class CommandsManager {
                 "PLAY " + getUrl() + " RTSP/1.0\r\n"
                         + (sessionId != null ? "Session: " + sessionId + "\r\n" : "")
                         + addHeaders();
-        Log.i(TAG, play);
+        Log.i(TAG, "PLAY------>" + play);
         return play;
     }
 
@@ -466,9 +497,11 @@ public class CommandsManager {
                 if (line.length() < 3) break;
             }
             if (checkStatus && getResponseStatus(response.toString()) != 200) {
-                connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, " + response);
+                connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream,response; " + response);
+            } else {
+                Log.i(TAG, "response------>" + response.toString());
             }
-            Log.i(TAG, response.toString());
+
             return response.toString();
         } catch (IOException e) {
             Log.e(TAG, "read error", e);
