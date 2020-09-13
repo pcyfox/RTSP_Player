@@ -46,6 +46,95 @@
                 android:layout_height="400dp"
                 android:layout_marginTop="20dp"
                 android:background="@android:color/holo_orange_dark" />
+
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_blue_dark" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_green_dark" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_orange_dark" />
+
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_blue_dark" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_green_dark" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_orange_dark" />
+
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_blue_dark" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_green_dark" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_orange_dark" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_green_dark" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp" />
+
+            <com.taike.rtspplayer.XVideoView
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_marginTop="20dp"
+                android:background="@android:color/holo_orange_dark" />
         </LinearLayout>
 
     </ScrollView>

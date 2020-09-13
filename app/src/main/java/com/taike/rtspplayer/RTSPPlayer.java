@@ -3,12 +3,14 @@ package com.taike.rtspplayer;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Surface;
 
 import com.taike.rtspplayer.rtsp.CodecBufferInfoListener;
 import com.taike.rtspplayer.rtsp.ConnectCheckerRtsp;
 import com.taike.rtspplayer.rtsp.RtspClient;
+import com.taike.rtspplayer.rtsp.ThreadPool;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -26,12 +28,11 @@ import java.util.concurrent.Executors;
 
 public class RTSPPlayer {
     private CodecBufferInfoListener codecBufferInfoListener;
-    private final static String TAG = "GeneROVPlayer";
     private final static String MIME_TYPE = "video/avc"; // H.264 Advanced Video
+    private static final String TAG = "RTSPPlayer";
     private RtspClient client;
     private BlockingQueue<byte[]> video_data_Queue = new ArrayBlockingQueue<>(1000);
     private MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-    private ExecutorService threadPool;
 
     //MediaCodec variable
     private volatile boolean isPlaying = false;
@@ -45,16 +46,10 @@ public class RTSPPlayer {
 
     public RTSPPlayer(Surface surface) {
         this.surface = surface;
-        initThreadPool();
         initMediaCodec();
         initRtspClient();
     }
 
-    private void initThreadPool() {
-        if (threadPool == null || threadPool.isShutdown()) {
-            threadPool = Executors.newFixedThreadPool(3);
-        }
-    }
 
     private void initRtspClient() {
         client = new RtspClient(new ConnectCheckerRtsp() {
@@ -117,11 +112,10 @@ public class RTSPPlayer {
     开始播放
      */
     public void startPlay() {
-        initMediaCodec();
-        initThreadPool();
         if (isPlaying) {
             Log.e(TAG, "start play failed.player is playing.");
         } else {
+            initMediaCodec();
             isPlaying = true;
             client.connect();
         }
@@ -131,10 +125,10 @@ public class RTSPPlayer {
     停止播放
      */
     public void stopPlay() {
-        client.disconnect();
         isPlaying = false;
-        threadPool.shutdown();
+
     }
+
 
     /*
     初始化MediaCodec
@@ -147,8 +141,6 @@ public class RTSPPlayer {
             MediaFormat mediaFormat = MediaFormat.createVideoFormat(MIME_TYPE, 1920, 1080);
             mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);
 //            byte[] header_sps = new byte[]{0, 0, 0, 1, 103, 66, 0, 42, -106, 53, 64, -16, 4, 79, -53, 55};
-//            byte[] header_pps = {0, 0, 0, 1, 104, -50, 60, -128};
-//            byte[] header_sps = new byte[]{0, 0, 0, 1, 103, 66, 0, 31, -106, 53, 64, -96, 11, 116, -36, 4, 4, 4, 8};
 //            byte[] header_pps = {0, 0, 0, 1, 104, -50, 60, -128};
 //            mediaFormat.setByteBuffer("csd-0", ByteBuffer.wrap(header_sps));
 //            mediaFormat.setByteBuffer("csd-1", ByteBuffer.wrap(header_pps));
@@ -182,9 +174,9 @@ public class RTSPPlayer {
                                     if (codecBufferInfoListener != null) {
                                         codecBufferInfoListener.onDecodeStart(data);
                                     }
-                                    mediaCodec.queueInputBuffer(inIndex, 0, data.length, 66, 0);
+                                    mediaCodec.queueInputBuffer(inIndex, 0, data.length, SystemClock.currentThreadTimeMillis(), 0);
                                 } else {
-                                    mediaCodec.queueInputBuffer(inIndex, 0, 0, 66, 0);
+                                    mediaCodec.queueInputBuffer(inIndex, 0, 0, SystemClock.currentThreadTimeMillis(), 0);
                                 }
                             }
                         } /*else {
@@ -224,10 +216,7 @@ public class RTSPPlayer {
     }
 
     private void submit(Runnable runnable) {
-        if (threadPool == null || threadPool.isShutdown() || threadPool.isTerminated()) {
-            return;
-        }
-        threadPool.submit(runnable);
+        ThreadPool.getInstance().submit(runnable);
     }
 
     public byte[] decodeValue(ByteBuffer bytes) {
@@ -275,7 +264,7 @@ public class RTSPPlayer {
                 while (isPlaying) {
                     try {
                         client.sendGetParam();
-                        Thread.sleep(3 * 1000);
+                        Thread.sleep(5 * 1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                         isPlaying = false;
@@ -287,13 +276,10 @@ public class RTSPPlayer {
     }
 
     private void receiveData() throws IOException, InterruptedException {
-
-
         byte frame_head_1 = (byte) 0x00;
         byte frame_head_2 = (byte) 0x00;
         byte frame_head_3 = (byte) 0x00;
         byte frame_head_4 = (byte) 0x01;
-
         byte frame_head_I = (byte) 0x65;
         byte frame_head_P = (byte) 0x61;
 
@@ -302,7 +288,6 @@ public class RTSPPlayer {
         long lastSq = 0;
         long currSq = 0;
 
-        Log.d(TAG, "start DatagramSocket.videoPort:" + videoPort);
         dataSocket = new DatagramSocket(videoPort);
         dataSocket.setSoTimeout(3000);
         byte[] receiveByte = new byte[48 * 1024];//96
@@ -316,7 +301,7 @@ public class RTSPPlayer {
 
         DatagramPacket dataPacket = new DatagramPacket(receiveByte, receiveByte.length);
 
-        Log.d(TAG, "start receive data from socket.");
+        //Log.d(TAG, "start receive data from socket.");
         while (isPlaying) {
             //Log.d(TAG, "T=" + test);
             dataSocket.receive(dataPacket);
@@ -326,15 +311,20 @@ public class RTSPPlayer {
                 currSq = ((receiveByte[2] & 0xFF) << 8) + (receiveByte[3] & 0xFF);
                 if (lastSq != 0) {
                     if (lastSq != currSq - 1) {
-                        Log.d(TAG, "frame data maybe lost.last=" + lastSq + ",curr=" + currSq);
+                       // if (BuildConfig.DEBUG)
+                          //  Log.d(TAG, "frame data maybe lost.last=" + lastSq + ",curr=" + currSq);
                     }
                 }
 
                 if (frameLen + offHeadsize < FRAME_MAX_LEN) {
                     nal_unit_type = receiveByte[12] & 0xFF;
+
+
                     if (nal_unit_type == 0x67 /*SPS*/
                             || nal_unit_type == 0x68 /*PPS*/
                             || nal_unit_type == 0x6 /*SEI*/) {
+
+                        //  Log.d(TAG, " PPS | SPS--------------------<");
                         //加上头部
                         receiveByte[8] = frame_head_1;
                         receiveByte[9] = frame_head_2;
@@ -408,6 +398,27 @@ public class RTSPPlayer {
         }
     }
 
+    public boolean isPlaying() {
+        return isPlaying;
+    }
+
+
+    public void release() {
+        isPlaying = false;
+        if (surface != null) {
+            surface.release();
+        }
+        if (mediaCodec != null) {
+            mediaCodec.stop();
+            mediaCodec.release();
+            mediaCodec = null;
+        }
+        if (client != null) {
+            client.disconnect();
+        }
+        video_data_Queue.clear();
+    }
+
     public void setVideoClientPorts(int[] videoClientPorts) {
         client.setVideoClientPorts(videoClientPorts);
     }
@@ -419,4 +430,6 @@ public class RTSPPlayer {
     public void setCodecBufferInfoListener(CodecBufferInfoListener codecBufferInfoListener) {
         this.codecBufferInfoListener = codecBufferInfoListener;
     }
+
+
 }

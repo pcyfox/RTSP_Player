@@ -4,6 +4,8 @@ import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 
+import com.taike.rtspplayer.BuildConfig;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -45,6 +47,7 @@ public class CommandsManager {
     //For auth
     private String user;
     private String password;
+    private boolean DEBUG = BuildConfig.DEBUG;
 
     private String url;
 
@@ -288,7 +291,7 @@ public class CommandsManager {
                     + "\",response=\""
                     + hash3
                     + "\"";
-            Log.i(TAG, "using digest auth digest--------->" + digest);
+            if (DEBUG) Log.i(TAG, "using digest auth digest--------->" + digest);
             return digest;
             //basic auth
         } else {
@@ -313,7 +316,7 @@ public class CommandsManager {
     public String createDescribe() {
         String describe =
                 "DESCRIBE rtsp://" + host + ":" + port + path + " RTSP/1.0\r\n" + addHeaders();
-        Log.i(TAG, "DESCRIBE-------->" + describe);
+        if (DEBUG) Log.i(TAG, "DESCRIBE-------->" + describe);
         return describe;
     }
 
@@ -331,7 +334,7 @@ public class CommandsManager {
                 "SETUP " + getUrlWithAuth() + " RTSP/1.0\r\n"
                         + "Transport: RTP/AVP;unicast;client_port=" + udpPorts[0] + "-" + udpPorts[1] + "\r\n"
                         + addHeaders();
-        Log.i(TAG, "SETUP------------>" + setup);
+        if (DEBUG) Log.i(TAG, "SETUP------------>" + setup);
         return setup;
 
 //        String params = (protocol == Protocol.UDP) ? ("UDP;unicast;client_port=" + udpPorts[0] + "-" + udpPorts[1])
@@ -346,7 +349,7 @@ public class CommandsManager {
 //                + "\r\n"
 //                + addHeaders();
 //        Log.i(TAG, "SETUP------------>:" + setup);
-   //     return setup;
+        //     return setup;
     }
 
 
@@ -359,7 +362,7 @@ public class CommandsManager {
                 + " RTSP/1.0\r\n"
                 + "Range: npt=0.000-\r\n"
                 + addHeaders();
-        Log.i(TAG, record);
+        if (DEBUG) Log.i(TAG, record);
         return record;
     }
 
@@ -368,7 +371,7 @@ public class CommandsManager {
                 "PLAY " + getUrl() + " RTSP/1.0\r\n"
                         + (sessionId != null ? "Session: " + sessionId + "\r\n" : "")
                         + addHeaders();
-        Log.i(TAG, "PLAY------>" + play);
+        if (DEBUG) Log.i(TAG, "PLAY------>" + play);
         return play;
     }
 
@@ -415,14 +418,14 @@ public class CommandsManager {
                 + "\r\n"
                 + "Content-Type: application/sdp\r\n\r\n"
                 + body;
-        Log.i(TAG, announceAuth);
+        if (DEBUG) Log.i(TAG, announceAuth);
         return announceAuth;
     }
 
     public String createTeardown() {
         String teardown =
                 "TEARDOWN rtsp://" + host + ":" + port + path + " RTSP/1.0\r\n" + addHeaders();
-        Log.i(TAG, teardown);
+        if (DEBUG) Log.i(TAG, teardown);
         return teardown;
     }
 
@@ -431,7 +434,7 @@ public class CommandsManager {
                 "TEARDOWN " + getUrl() + " RTSP/1.0\r\n"
                         + (sessionId != null ? "Session: " + sessionId + "\r\n" : "")
                         + addHeaders();
-        Log.i(TAG, teardown);
+        if (DEBUG) Log.i(TAG, teardown);
         return teardown;
     }
 
@@ -450,7 +453,7 @@ public class CommandsManager {
                 "GET_PARAMETER " + getUrl() + " RTSP/1.0\r\n"
                         + (sessionId != null ? "Session: " + sessionId + "\r\n" : "")
                         + addHeaders();
-        Log.i(TAG, param);
+        if (DEBUG) Log.i(TAG, param);
         return param;
     }
 

@@ -31,7 +31,6 @@ public class RtspClient {
     private Socket connectionSocket;
     private BufferedReader reader;
     private BufferedWriter writer;
-    private Thread thread;
     //for tcp
     private OutputStream outputStream;
     private volatile boolean streaming = false;
@@ -43,6 +42,7 @@ public class RtspClient {
     private int reTries;
     private Handler handler;
     private Runnable runnable;
+    private final Object lock = new Object();
 
     public RtspClient(ConnectCheckerRtsp connectCheckerRtsp) {
         this.connectCheckerRtsp = connectCheckerRtsp;
@@ -78,6 +78,11 @@ public class RtspClient {
     }
 
     public void setUrl(String url) {
+        Log.d(TAG, "setUrl() called with: url = [" + url + "]");
+        if (TextUtils.isEmpty(url)) {
+            Log.e(TAG, "setUrl() called with: url = [" + url + "]");
+            return;
+        }
         Matcher rtspMatcher = rtspAuthPatten.matcher(url);
         if (rtspMatcher.find()) {
             String user = rtspMatcher.group(1);
@@ -123,6 +128,9 @@ public class RtspClient {
     }
 
     public void connect() {
+        if (TextUtils.isEmpty(url)) {
+            return;
+        }
         if (!streaming) {
             Matcher rtspMatcher = rtspUrlPattern.matcher(url);
             if (rtspMatcher.matches()) {
@@ -144,9 +152,7 @@ public class RtspClient {
                 String path = "/" + rtspMatcher.group(3);
                 commandsManager.setUrl(host, port, path);
             }
-
-
-            thread = new Thread(new Runnable() {
+            ThreadPool.getInstance().submit(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -214,13 +220,12 @@ public class RtspClient {
                         reTries = numRetry;
                         connectCheckerRtsp.onConnectionSuccessRtsp();
                     } catch (IOException | NullPointerException e) {
-                        Log.e(TAG, "connection error", e);
+                        e.printStackTrace();
                         connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream Exception:, " + e.getMessage());
                         streaming = false;
                     }
                 }
             });
-            thread.start();
         }
     }
 
@@ -249,7 +254,7 @@ public class RtspClient {
 
     private void disconnect(final boolean clear) {
         streaming = false;
-        thread = new Thread(new Runnable() {
+        ThreadPool.getInstance().submit(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -262,7 +267,10 @@ public class RtspClient {
                             commandsManager.retryClear();
                         }
                     }
-                    if (connectionSocket != null) connectionSocket.close();
+
+                    if (connectionSocket != null && !connectionSocket.isClosed()) {
+                        connectionSocket.close();
+                    }
                     writer = null;
                     connectionSocket = null;
                 } catch (IOException e) {
@@ -275,13 +283,11 @@ public class RtspClient {
                 }
             }
         });
-        thread.start();
         if (clear) {
             reTries = 0;
             connectCheckerRtsp.onDisconnectRtsp();
         }
     }
-
 
     public void setVideoClientPorts(int[] videoClientPorts) {
         commandsManager.setVideoClientPorts(videoClientPorts);
@@ -303,6 +309,5 @@ public class RtspClient {
         };
         handler.postDelayed(runnable, delay);
     }
-
 }
 

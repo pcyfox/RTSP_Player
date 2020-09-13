@@ -1,7 +1,9 @@
 package com.taike.rtspplayer;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -19,6 +21,7 @@ public class XVideoView extends LinearLayout {
     private int[] videoClientPorts;
     private int[] audioClientPorts;
     private String url;
+    private boolean isNeedStart = false;
 
     public XVideoView(@NonNull Context context) {
         super(context);
@@ -52,18 +55,11 @@ public class XVideoView extends LinearLayout {
                 player = new RTSPPlayer(holder.getSurface());
                 player.setVideoClientPorts(videoClientPorts);
                 player.setAudioClientPorts(audioClientPorts);
-                player.setPlayUrl(url);
-                player.setCodecBufferInfoListener(new CodecBufferInfoListener() {
-                    @Override
-                    public void onDecodeStart(byte[] data) {
-                       // Log.d(TAG, "onDecodeStart() called with: data = [" + data + "]");
-                    }
-
-                    @Override
-                    public void onDecodeOver(byte[] data) {
-                     //   Log.d(TAG, "onDecodeOver() called with: data = [" + data + "]");
-                    }
-                });
+                setPlayUrl(url);
+                if (isNeedStart) {
+                    player.startPlay();
+                    isNeedStart = false;
+                }
             }
 
             @Override
@@ -81,14 +77,33 @@ public class XVideoView extends LinearLayout {
         tvStart.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                player.startPlay();
+                if (player != null) {
+                    player.startPlay();
+                }
             }
         });
 
         tvStop.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                player.stopPlay();
+                if (player != null) {
+                    player.stopPlay();
+                }
+            }
+        });
+    }
+
+    private void setPlayUrl(String url) {
+        player.setPlayUrl(url);
+        player.setCodecBufferInfoListener(new CodecBufferInfoListener() {
+            @Override
+            public void onDecodeStart(byte[] data) {
+                // Log.d(TAG, "onDecodeStart() called with: data = [" + data + "]");
+            }
+
+            @Override
+            public void onDecodeOver(byte[] data) {
+                //   Log.d(TAG, "onDecodeOver() called with: data = [" + data + "]");
             }
         });
     }
@@ -103,5 +118,26 @@ public class XVideoView extends LinearLayout {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public void release() {
+        Log.d(TAG, "release() called");
+        if (player != null) {
+            player.release();
+        }
+    }
+
+
+    public void start() {
+        if (TextUtils.isEmpty(url) || player == null || player.isPlaying()) {
+            return;
+        }
+        isNeedStart = true;
+    }
+
+    public void stop() {
+        if (player != null) {
+            player.stopPlay();
+        }
     }
 }
