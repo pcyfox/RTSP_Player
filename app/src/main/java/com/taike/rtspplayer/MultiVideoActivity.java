@@ -35,6 +35,12 @@ public class MultiVideoActivity extends AppCompatActivity {
             "rtsp://admin:123456@192.168.28.9/mpeg4cif",
             "rtsp://admin:123456@192.168.28.8/mpeg4cif"
     };
+
+
+
+
+
+
     private List<XVideoView> videoViews = new ArrayList<>();
 
     @Override
@@ -64,7 +70,7 @@ public class MultiVideoActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         for (XVideoView xVideoView : videoViews) {
-            xVideoView.start();
+          //  xVideoView.start();
         }
         super.onResume();
     }

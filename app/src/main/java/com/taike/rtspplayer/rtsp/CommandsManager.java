@@ -423,8 +423,7 @@ public class CommandsManager {
     }
 
     public String createTeardown() {
-        String teardown =
-                "TEARDOWN rtsp://" + host + ":" + port + path + " RTSP/1.0\r\n" + addHeaders();
+        String teardown = "TEARDOWN rtsp://" + host + ":" + port + path + " RTSP/1.0\r\n" + addHeaders();
         if (DEBUG) Log.i(TAG, teardown);
         return teardown;
     }

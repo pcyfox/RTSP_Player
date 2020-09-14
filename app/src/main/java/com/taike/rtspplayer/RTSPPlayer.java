@@ -126,7 +126,6 @@ public class RTSPPlayer {
      */
     public void stopPlay() {
         isPlaying = false;
-
     }
 
 

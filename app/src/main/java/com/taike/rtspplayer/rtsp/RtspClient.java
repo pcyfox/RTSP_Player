@@ -259,8 +259,9 @@ public class RtspClient {
             public void run() {
                 try {
                     if (writer != null) {
-                        writer.write(commandsManager.createTeardown());
+                        //  writer.write(commandsManager.createTeardown());
                         writer.flush();
+                        commandsManager.getResponse(reader, connectCheckerRtsp, false, false);
                         if (clear) {
                             commandsManager.clear();
                         } else {
