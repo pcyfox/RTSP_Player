@@ -366,7 +366,7 @@ public class CommandsManager {
         return record;
     }
 
-    public String sendPlay() {
+    public String createPlay() {
         String play =
                 "PLAY " + getUrl() + " RTSP/1.0\r\n"
                         + (sessionId != null ? "Session: " + sessionId + "\r\n" : "")
@@ -428,24 +428,14 @@ public class CommandsManager {
         return teardown;
     }
 
-    public String sendTearDown() {
-        String teardown =
-                "TEARDOWN " + getUrl() + " RTSP/1.0\r\n"
-                        + (sessionId != null ? "Session: " + sessionId + "\r\n" : "")
-                        + addHeaders();
-        if (DEBUG) Log.i(TAG, teardown);
-        return teardown;
+
+    public String createPause() {
+        String pause = "PAUSE rtsp://" + host + ":" + port + path + " RTSP/1.0\r\n" + addHeaders();
+        if (DEBUG) Log.i(TAG, pause);
+        return pause;
     }
 
-    //Unused commands
 
-    public static String createPause() {
-        return "";
-    }
-
-    public static String createPlay() {
-        return "";
-    }
 
     public String createGetParameter() {
         String param =
@@ -466,7 +456,7 @@ public class CommandsManager {
 
     //Response parser
 
-    public String getResponse(BufferedReader reader, ConnectCheckerRtsp connectCheckerRtsp,
+    public String getResponse(BufferedReader reader, RtspListener connectCheckerRtsp,
                               boolean isAudio, boolean checkStatus) {
         try {
             StringBuilder response = new StringBuilder();

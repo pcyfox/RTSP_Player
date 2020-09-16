@@ -12,34 +12,36 @@ import java.util.List;
 
 public class MultiVideoActivity extends AppCompatActivity {
     final static String[] urls = {
-            "rtsp://admin:123456@192.168.28.75/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.77/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.79/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.80/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.85/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.252/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.84/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.85/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.86/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.87/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.88/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.90/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.91/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.92/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.124/mpeg4cif",
             "rtsp://admin:123456@192.168.28.93/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.94/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.95/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.96/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.97/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.98/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.9/mpeg4cif",
-            "rtsp://admin:123456@192.168.28.8/mpeg4cif"
+            "rtsp://admin:123456@192.168.28.91/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.81/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.77/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.5/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.47/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.28/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.251/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.248/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.16/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.131/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.125/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.124/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.89/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.93/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.91/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.81/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.77/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.5/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.47/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.28/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.251/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.248/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.16/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.131/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.125/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.112/mpeg4cif",
+            "rtsp://admin:123456@192.168.28.112/mpeg4cif",
     };
-
-
-
-
-
 
     private List<XVideoView> videoViews = new ArrayList<>();
 
@@ -70,7 +72,7 @@ public class MultiVideoActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         for (XVideoView xVideoView : videoViews) {
-          //  xVideoView.start();
+            //  xVideoView.start();
         }
         super.onResume();
     }

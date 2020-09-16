@@ -48,6 +48,7 @@ public class XVideoView extends LinearLayout {
         super.onFinishInflate();
         View tvStart = findViewById(R.id.tv_start);
         View tvStop = findViewById(R.id.tv_stop);
+        View tvPause = findViewById(R.id.tv_pause);
         SurfaceView svVideo = findViewById(R.id.sv_video);
         svVideo.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -91,6 +92,12 @@ public class XVideoView extends LinearLayout {
                 }
             }
         });
+        tvPause.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                player.pause();
+            }
+        });
     }
 
     private void setPlayUrl(String url) {
@@ -132,6 +139,9 @@ public class XVideoView extends LinearLayout {
         if (TextUtils.isEmpty(url) || player == null || player.isPlaying()) {
             return;
         }
+        Log.d(TAG, "start() called  url=" + url);
+        setPlayUrl(url);
+        player.startPlay();
         isNeedStart = true;
     }
 

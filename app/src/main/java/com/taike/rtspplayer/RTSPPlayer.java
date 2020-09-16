@@ -8,7 +8,7 @@ import android.util.Log;
 import android.view.Surface;
 
 import com.taike.rtspplayer.rtsp.CodecBufferInfoListener;
-import com.taike.rtspplayer.rtsp.ConnectCheckerRtsp;
+import com.taike.rtspplayer.rtsp.RtspListener;
 import com.taike.rtspplayer.rtsp.RtspClient;
 import com.taike.rtspplayer.rtsp.ThreadPool;
 
@@ -19,8 +19,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by Auser on 2018/5/28.
@@ -33,16 +31,18 @@ public class RTSPPlayer {
     private RtspClient client;
     private BlockingQueue<byte[]> video_data_Queue = new ArrayBlockingQueue<>(1000);
     private MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-
     //MediaCodec variable
     private volatile boolean isPlaying = false;
+    private boolean isPause = false;
     private Surface surface;
     private MediaCodec mediaCodec;
-    private long lasttime = 0;
-    private long frametime = 0;
+    private long lastTime = 0;
+    private long frameTime = 0;
     private int videoPort;
-
+    private String url = null;
     private DatagramSocket dataSocket;
+    private RtspListener rtspListener;
+
 
     public RTSPPlayer(Surface surface) {
         this.surface = surface;
@@ -52,46 +52,102 @@ public class RTSPPlayer {
 
 
     private void initRtspClient() {
-        client = new RtspClient(new ConnectCheckerRtsp() {
-
+        client = new RtspClient(new RtspListener() {
             @Override
             public void onCanPlay(String sessionId, int[] ports) {
-                Log.d(TAG, "onCanPlay() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
-                videoPort = ports[0];
-                startDecode();
-                startHandleData();
+                if (BuildConfig.DEBUG)
+                    Log.d(TAG, url + " onCanPlay() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
+                if (client != null && client.isStreaming()) {
+                    isPause = false;
+                } else {
+                    videoPort = ports[0];
+                    startDecode();
+                    startHandleData();
+                }
+                if (rtspListener != null) {
+                    rtspListener.onCanPlay(sessionId, ports);
+                }
+            }
+
+            @Override
+            public void onPlayError(String sessionId, int[] ports) {
+                if (BuildConfig.DEBUG)
+                    Log.d(TAG, url + " onPlayError() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
+                isPlaying = false;
+                if (rtspListener != null) {
+                    rtspListener.onPlayError(sessionId, ports);
+                }
+            }
+
+            @Override
+            public void onPause(String sessionId, int[] ports) {
+                if (BuildConfig.DEBUG)
+                    Log.e(TAG, url + " onPause() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
+                isPause = true;
+                if (rtspListener != null) {
+                    rtspListener.onPause(sessionId, ports);
+                }
+            }
+
+            @Override
+            public void onPauseError(String sessionId, int[] ports) {
+                if (BuildConfig.DEBUG)
+                    Log.e(TAG, url + " onPauseError() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
+                isPause = false;
+                if (rtspListener != null) {
+                    rtspListener.onPlayError(sessionId, ports);
+                }
             }
 
             @Override
             public void onConnectionSuccessRtsp() {
-                Log.d(TAG, "onConnectionSuccessRtsp() called");
+                if (rtspListener != null) {
+                    rtspListener.onConnectionSuccessRtsp();
+                }
+                if (BuildConfig.DEBUG) Log.d(TAG, url + " onConnectionSuccessRtsp() called");
             }
 
             @Override
             public void onConnectionFailedRtsp(String reason) {
-                Log.e(TAG, "onConnectionFailedRtsp() called with: reason = [" + reason + "]");
+                if (rtspListener != null) {
+                    rtspListener.onConnectionFailedRtsp(reason);
+                }
+                if (BuildConfig.DEBUG)
+                    Log.e(TAG, url + " onConnectionFailedRtsp() called with: reason = [" + reason + "]");
             }
 
             @Override
             public void onNewBitrateRtsp(long bitrate) {
-                Log.d(TAG, "onNewBitrateRtsp() called with: bitrate = [" + bitrate + "]");
+                if (rtspListener != null) {
+                    rtspListener.onNewBitrateRtsp(bitrate);
+                }
+                if (BuildConfig.DEBUG)
+                    Log.e(TAG, url + " onNewBitrateRtsp() called with: bitrate = [" + bitrate + "]");
             }
 
             @Override
             public void onDisconnectRtsp() {
-                Log.d(TAG, "onDisconnectRtsp() called");
+                if (rtspListener != null) {
+                    rtspListener.onDisconnectRtsp();
+                }
+                if (BuildConfig.DEBUG) Log.e(TAG, url + " onDisconnectRtsp() called");
             }
 
             @Override
             public void onAuthErrorRtsp() {
-                Log.d(TAG, "onAuthErrorRtsp() called");
+                if (BuildConfig.DEBUG) Log.d(TAG, url + " onAuthErrorRtsp() called");
+                if (rtspListener != null) {
+                    rtspListener.onAuthErrorRtsp();
+                }
 
             }
 
             @Override
             public void onAuthSuccessRtsp() {
-                Log.d(TAG, "onAuthSuccessRtsp() called");
-
+                if (BuildConfig.DEBUG) Log.d(TAG, url + "onAuthSuccessRtsp() called");
+                if (rtspListener != null) {
+                    rtspListener.onAuthSuccessRtsp();
+                }
             }
         });
     }
@@ -101,6 +157,7 @@ public class RTSPPlayer {
      */
     public void setPlayUrl(String playUrl) {
         client.setUrl(playUrl);
+        url = playUrl;
     }
 
     public void setAuthorization(String user, String psw) {
@@ -113,7 +170,7 @@ public class RTSPPlayer {
      */
     public void startPlay() {
         if (isPlaying) {
-            Log.e(TAG, "start play failed.player is playing.");
+            Log.e(TAG, "start play failed.  player is playing");
         } else {
             initMediaCodec();
             isPlaying = true;
@@ -128,6 +185,12 @@ public class RTSPPlayer {
         isPlaying = false;
     }
 
+
+    public void pause() {
+        if (client != null) {
+            client.pause();
+        }
+    }
 
     /*
     初始化MediaCodec
@@ -193,12 +256,12 @@ public class RTSPPlayer {
                                 }
                             }
                             mediaCodec.releaseOutputBuffer(outIndex, true);
-                            lasttime = System.currentTimeMillis();
+                            lastTime = System.currentTimeMillis();
                         }
-                        if (lasttime != 0) {
-                            frametime = System.currentTimeMillis() - lasttime;
-                            if (frametime < 20) {
-                                Thread.sleep(20 - frametime);
+                        if (lastTime != 0) {
+                            frameTime = System.currentTimeMillis() - lastTime;
+                            if (frameTime < 20) {
+                                Thread.sleep(20 - frameTime);
                             }
                         }
                     } catch (Exception e) {
@@ -291,7 +354,7 @@ public class RTSPPlayer {
         dataSocket.setSoTimeout(3000);
         byte[] receiveByte = new byte[48 * 1024];//96
         //从udp读取的数据长度
-        int offHeadsize = 0;
+        int offHeadSize = 0;
         //当前帧长度
         int frameLen = 0;
         //完整帧筛选用缓冲区
@@ -304,35 +367,38 @@ public class RTSPPlayer {
         while (isPlaying) {
             //Log.d(TAG, "T=" + test);
             dataSocket.receive(dataPacket);
-            offHeadsize = dataPacket.getLength() - 12;
-            if (offHeadsize > 2) {
+            offHeadSize = dataPacket.getLength() - 12;
+            if (offHeadSize > 2) {
                 lastSq = currSq;
                 currSq = ((receiveByte[2] & 0xFF) << 8) + (receiveByte[3] & 0xFF);
                 if (lastSq != 0) {
                     if (lastSq != currSq - 1) {
-                       // if (BuildConfig.DEBUG)
-                          //  Log.d(TAG, "frame data maybe lost.last=" + lastSq + ",curr=" + currSq);
+                        // if (BuildConfig.DEBUG)
+                        //  Log.d(TAG, "frame data maybe lost.last=" + lastSq + ",curr=" + currSq);
                     }
                 }
 
-                if (frameLen + offHeadsize < FRAME_MAX_LEN) {
+                if (frameLen + offHeadSize < FRAME_MAX_LEN) {
                     nal_unit_type = receiveByte[12] & 0xFF;
-
-
+/*
+                    if (BuildConfig.DEBUG)
+                        Log.d(TAG, "receiveData() called  type=" + Integer.toHexString(nal_unit_type) + " currSq:" + currSq);
+*/
                     if (nal_unit_type == 0x67 /*SPS*/
                             || nal_unit_type == 0x68 /*PPS*/
                             || nal_unit_type == 0x6 /*SEI*/) {
 
-                        //  Log.d(TAG, " PPS | SPS--------------------<");
+                        // if (BuildConfig.DEBUG) Log.d(TAG, " PPS | SPS SEI--------------------<");
+
                         //加上头部
                         receiveByte[8] = frame_head_1;
                         receiveByte[9] = frame_head_2;
                         receiveByte[10] = frame_head_3;
                         receiveByte[11] = frame_head_4;
                         //Log.d(TAG, "ppp=" + Arrays.toString(receiveByte));
-                        video_data_Queue.put(Arrays.copyOfRange(receiveByte, 8, offHeadsize + 12));
+                        video_data_Queue.put(Arrays.copyOfRange(receiveByte, 8, offHeadSize + 12));
 //                                    if(isFirstPacket){
-//                                        header_sps = Arrays.copyOfRange(receiveByte, 8, offHeadsize + 12);
+//                                        header_sps = Arrays.copyOfRange(receiveByte, 8, offHeadSize + 12);
 //                                        mediaCodec = null;
 //                                        initMediaCodec();
 //                                        startDecodecThread();
@@ -344,27 +410,30 @@ public class RTSPPlayer {
                         if ((receiveByte[13] & 0xFF) == 0x85) {
                             //I帧的第一包
 //                           Log.e(TAG, "I1=" + System.currentTimeMillis());
+                            // if (BuildConfig.DEBUG)
+                            //        Log.e(TAG, "receiveData() called  ---------------I---------- 帧来了！");
                             receiveByte[9] = frame_head_1;
                             receiveByte[10] = frame_head_2;
                             receiveByte[11] = frame_head_3;
                             receiveByte[12] = frame_head_4;
                             receiveByte[13] = frame_head_I;
-                            System.arraycopy(receiveByte, 9, frame, frameLen, offHeadsize + 3);
-                            frameLen += offHeadsize + 3;
+                            System.arraycopy(receiveByte, 9, frame, frameLen, offHeadSize + 3);
+                            frameLen += offHeadSize + 3;
                         } else if ((receiveByte[13] & 0xFF) == 0x81) {
                             //P帧的第一包
+                            //if (BuildConfig.DEBUG) Log.e(TAG, "receiveData() called  P 帧来了！");
 //                           Log.e(TAG, "P1=" + System.currentTimeMillis());
                             receiveByte[9] = frame_head_1;
                             receiveByte[10] = frame_head_2;
                             receiveByte[11] = frame_head_3;
                             receiveByte[12] = frame_head_4;
                             receiveByte[13] = frame_head_P;
-                            System.arraycopy(receiveByte, 9, frame, frameLen, offHeadsize + 3);
-                            frameLen += offHeadsize + 3;
+                            System.arraycopy(receiveByte, 9, frame, frameLen, offHeadSize + 3);
+                            frameLen += offHeadSize + 3;
                         } else {
-                            System.arraycopy(receiveByte, 14, frame, frameLen, offHeadsize - 2);
+                            System.arraycopy(receiveByte, 14, frame, frameLen, offHeadSize - 2);
                             //修改frameLen
-                            frameLen += offHeadsize - 2;
+                            frameLen += offHeadSize - 2;
                         }
 
                         if (((receiveByte[13] & 0xFF) == 0x45)) {
@@ -430,5 +499,7 @@ public class RTSPPlayer {
         this.codecBufferInfoListener = codecBufferInfoListener;
     }
 
-
+    public void setRtspListener(RtspListener rtspListener) {
+        this.rtspListener = rtspListener;
+    }
 }

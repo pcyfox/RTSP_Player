@@ -26,7 +26,7 @@ public class RtspClient {
     private final String TAG = "RtspClient";
     private static final Pattern rtspUrlPattern = Pattern.compile("^rtsps?://([^/:]+)(?::(\\d+))*/([^/]+)/?([^*]*)$");
     private Pattern rtspAuthPatten = Pattern.compile("^rtsp?://(\\w{1,20}):(\\w{1,20}.*?@1)*");
-    private ConnectCheckerRtsp connectCheckerRtsp;
+    private RtspListener connectCheckerRtsp;
     //sockets objects
     private Socket connectionSocket;
     private BufferedReader reader;
@@ -44,7 +44,7 @@ public class RtspClient {
     private Runnable runnable;
     private final Object lock = new Object();
 
-    public RtspClient(ConnectCheckerRtsp connectCheckerRtsp) {
+    public RtspClient(RtspListener connectCheckerRtsp) {
         this.connectCheckerRtsp = connectCheckerRtsp;
         commandsManager = new CommandsManager();
         handler = new Handler(Looper.getMainLooper());
@@ -115,7 +115,7 @@ public class RtspClient {
         return commandsManager.getPath();
     }
 
-    public ConnectCheckerRtsp getConnectCheckerRtsp() {
+    public RtspListener getConnectCheckerRtsp() {
         return connectCheckerRtsp;
     }
 
@@ -123,112 +123,169 @@ public class RtspClient {
         commandsManager.setVideoInfo(sps, pps, vps);
     }
 
+    public String getUrl() {
+        return url;
+    }
+
     public void setIsStereo(boolean isStereo) {
         commandsManager.setIsStereo(isStereo);
     }
 
     public void connect() {
-        if (TextUtils.isEmpty(url)) {
+        if (TextUtils.isEmpty(url) || streaming) {
             return;
         }
-        if (!streaming) {
-            Matcher rtspMatcher = rtspUrlPattern.matcher(url);
-            if (rtspMatcher.matches()) {
-                tlsEnabled = rtspMatcher.group(0).startsWith("rtsps");
-            } else {
-                streaming = false;
-                connectCheckerRtsp.onConnectionFailedRtsp("Endpoint malformed, should be: rtsp://ip:port/appname/streamname");
-                return;
-            }
+        Matcher rtspMatcher = rtspUrlPattern.matcher(url);
+        if (rtspMatcher.matches()) {
+            tlsEnabled = rtspMatcher.group(0).startsWith("rtsps");
+        } else {
+            streaming = false;
+            connectCheckerRtsp.onConnectionFailedRtsp("Endpoint malformed, should be: rtsp://ip:port/appname/streamname");
+            return;
+        }
 
-            String host = rtspMatcher.group(1);
-            int port = Integer.parseInt((rtspMatcher.group(2) != null) ? rtspMatcher.group(2) : "554");
-            String group4 = rtspMatcher.group(4);
+        String host = rtspMatcher.group(1);
+        int port = Integer.parseInt((rtspMatcher.group(2) != null) ? rtspMatcher.group(2) : "554");
+        String group4 = rtspMatcher.group(4);
 
-            if (!TextUtils.isEmpty(group4)) {
-                String path = "/" + rtspMatcher.group(3) + "/" + rtspMatcher.group(4);
-                commandsManager.setUrl(host, port, path);
-            } else {
-                String path = "/" + rtspMatcher.group(3);
-                commandsManager.setUrl(host, port, path);
-            }
-            ThreadPool.getInstance().submit(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (!tlsEnabled) {
-                            connectionSocket = new Socket();
-                            SocketAddress socketAddress =
-                                    new InetSocketAddress(commandsManager.getHost(), commandsManager.getPort());
-                            connectionSocket.connect(socketAddress, 5000);
-                        } else {
+        if (!TextUtils.isEmpty(group4)) {
+            String path = "/" + rtspMatcher.group(3) + "/" + rtspMatcher.group(4);
+            commandsManager.setUrl(host, port, path);
+        } else {
+            String path = "/" + rtspMatcher.group(3);
+            commandsManager.setUrl(host, port, path);
+        }
+        ThreadPool.getInstance().submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (!tlsEnabled) {
+                        connectionSocket = new Socket();
+                        SocketAddress socketAddress =
+                                new InetSocketAddress(commandsManager.getHost(), commandsManager.getPort());
+                        connectionSocket.connect(socketAddress, 5000);
+                    } else {
 //                            connectionSocket = CreateSSLSocket.createSSlSocket(commandsManager.getHost(),
 //                                    commandsManager.getPort());
 //                            if (connectionSocket == null)
 //                                throw new IOException("Socket creation failed");
-                        }
-                        connectionSocket.setSoTimeout(5000);
-                        reader = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-                        outputStream = connectionSocket.getOutputStream();
-                        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
-                        String options = commandsManager.createOptions();
-                        writer.write(options);
-                        writer.flush();
-                        commandsManager.getResponse(reader, connectCheckerRtsp, false, false);
+                    }
+                    connectionSocket.setSoTimeout(5000);
+                    reader = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+                    outputStream = connectionSocket.getOutputStream();
+                    writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+                    String options = commandsManager.createOptions();
+                    writer.write(options);
+                    writer.flush();
+                    commandsManager.getResponse(reader, connectCheckerRtsp, false, false);
 
-                        String describe = commandsManager.createDescribe();
-                        writer.write(describe);
-                        writer.flush();
-                        String dpResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, false);
-                        int status = commandsManager.getResponseStatus(dpResp);
-                        if (status == 403) {
-                            connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, access denied");
-                            Log.e(TAG, "Response 403, access denied");
+                    String describe = commandsManager.createDescribe();
+                    writer.write(describe);
+                    writer.flush();
+                    String dpResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, false);
+                    int status = commandsManager.getResponseStatus(dpResp);
+                    if (status == 403) {
+                        connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream, access denied");
+                        Log.e(TAG, "Response 403, access denied");
+                        return;
+                    } else if (status == 401) {
+                        if (commandsManager.getUser() == null || commandsManager.getPassword() == null) {
+                            connectCheckerRtsp.onAuthErrorRtsp();
                             return;
-                        } else if (status == 401) {
-                            if (commandsManager.getUser() == null || commandsManager.getPassword() == null) {
+                        } else {
+                            String describeWithAuth = commandsManager.createDescribeWithAuth(dpResp);
+                            writer.write(describeWithAuth);
+                            writer.flush();
+                            String authResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, false);
+                            int statusAuth = commandsManager.getResponseStatus(authResp);
+                            if (statusAuth == 401) {
                                 connectCheckerRtsp.onAuthErrorRtsp();
                                 return;
-                            } else {
-                                String describeWithAuth = commandsManager.createDescribeWithAuth(dpResp);
-                                writer.write(describeWithAuth);
+                            } else if (statusAuth == 200) {
+                                connectCheckerRtsp.onAuthSuccessRtsp();
+                                writer.write(commandsManager.createSetup(commandsManager.getTrackVideo()));
                                 writer.flush();
-                                String authResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, false);
-                                int statusAuth = commandsManager.getResponseStatus(authResp);
-                                if (statusAuth == 401) {
-                                    connectCheckerRtsp.onAuthErrorRtsp();
-                                    return;
-                                } else if (statusAuth == 200) {
-                                    connectCheckerRtsp.onAuthSuccessRtsp();
-                                    writer.write(commandsManager.createSetup(commandsManager.getTrackVideo()));
-                                    writer.flush();
-                                    String setupResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, true);
-                                    int setUpStatus = commandsManager.getResponseStatus(setupResp);
-                                    if (setUpStatus == 200) {
-                                        writer.write(commandsManager.sendPlay());
-                                        writer.flush();
-                                        String sendPlayResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, true);
-                                        int sendPlayStatus = commandsManager.getResponseStatus(sendPlayResp);
-                                        if (sendPlayStatus == 200) {
-                                            connectCheckerRtsp.onCanPlay(commandsManager.getSessionId(), commandsManager.getVideoClientPorts());
-                                        }
-                                    }
+                                String setupResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, true);
+                                int setUpStatus = commandsManager.getResponseStatus(setupResp);
+                                if (setUpStatus == 200) {
+                                    doPlay();
+                                } else {
+                                    connectCheckerRtsp.onPlayError(commandsManager.getSessionId(), commandsManager.getVideoClientPorts());
                                 }
                             }
                         }
-                        streaming = true;
-                        reTries = numRetry;
-                        connectCheckerRtsp.onConnectionSuccessRtsp();
-                    } catch (IOException | NullPointerException e) {
-                        e.printStackTrace();
-                        connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream Exception:, " + e.getMessage());
-                        streaming = false;
                     }
+                    streaming = true;
+                    reTries = numRetry;
+                    connectCheckerRtsp.onConnectionSuccessRtsp();
+                } catch (IOException | NullPointerException e) {
+                    e.printStackTrace();
+                    connectCheckerRtsp.onConnectionFailedRtsp("Error configure stream Exception:, " + e.getMessage());
+                    streaming = false;
                 }
-            });
+            }
+        });
+    }
+
+
+    private void doPlay() {
+        if (writer == null || connectionSocket == null || connectionSocket.isClosed()) {
+            return;
+        }
+        try {
+            writer.flush();
+            writer.write(commandsManager.createPlay());
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+        String sendPlayResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, true);
+        int sendPlayStatus = commandsManager.getResponseStatus(sendPlayResp);
+        if (sendPlayStatus == 200) {
+            connectCheckerRtsp.onCanPlay(commandsManager.getSessionId(), commandsManager.getVideoClientPorts());
+        } else {
+            connectCheckerRtsp.onPlayError(commandsManager.getSessionId(), commandsManager.getVideoClientPorts());
         }
     }
 
+    public void play() {
+        ThreadPool.getInstance().submit(new Runnable() {
+            @Override
+            public void run() {
+                doPlay();
+            }
+        });
+    }
+
+    public void pause() {
+        ThreadPool.getInstance().submit(new Runnable() {
+            @Override
+            public void run() {
+                doPause();
+            }
+        });
+    }
+
+    private void doPause() {
+        if (writer == null || connectionSocket == null || connectionSocket.isClosed()) {
+            return;
+        }
+        try {
+            writer.flush();
+            writer.write(commandsManager.createPause());
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String sendPlayResp = commandsManager.getResponse(reader, connectCheckerRtsp, false, true);
+        int sendPlayStatus = commandsManager.getResponseStatus(sendPlayResp);
+        if (sendPlayStatus == 200) {
+            connectCheckerRtsp.onPause(commandsManager.getSessionId(), commandsManager.getVideoClientPorts());
+        } else {
+            connectCheckerRtsp.onPauseError(commandsManager.getSessionId(), commandsManager.getVideoClientPorts());
+        }
+    }
 
     public void write(String param) {
         if (TextUtils.isEmpty(param) || writer == null) {
@@ -259,7 +316,7 @@ public class RtspClient {
             public void run() {
                 try {
                     if (writer != null) {
-                        //  writer.write(commandsManager.createTeardown());
+                        writer.write(commandsManager.createTeardown());
                         writer.flush();
                         commandsManager.getResponse(reader, connectCheckerRtsp, false, false);
                         if (clear) {
