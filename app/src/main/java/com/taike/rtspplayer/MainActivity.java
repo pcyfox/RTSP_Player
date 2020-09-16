@@ -14,7 +14,9 @@ import android.view.WindowManager;
 
 import androidx.core.app.ActivityCompat;
 
-import com.taike.rtspplayer.rtsp.CodecBufferInfoListener;
+import com.taike.lib_rtp_player.RTSPPlayer;
+import com.taike.lib_rtp_player.rtsp.CodecBufferInfoListener;
+
 
 public class MainActivity extends Activity implements View.OnClickListener {
     private static final String TAG = "MainActivity";

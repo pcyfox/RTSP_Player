@@ -1,4 +1,4 @@
-package com.taike.rtspplayer;
+package com.taike.lib_rtp_player;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -13,7 +13,8 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.taike.rtspplayer.rtsp.CodecBufferInfoListener;
+import com.taike.lib_rtp_player.rtsp.CodecBufferInfoListener;
+
 
 public class XVideoView extends LinearLayout {
     private RTSPPlayer player;

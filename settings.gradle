@@ -1,1 +1,2 @@
+include ':lib_rtp_player'
 include ':app'

@@ -1,4 +1,4 @@
-package com.taike.rtspplayer.rtsp;
+package com.taike.lib_rtp_player.rtsp;
 
 public interface CodecBufferInfoListener {
     void onDecodeStart(byte[] data);

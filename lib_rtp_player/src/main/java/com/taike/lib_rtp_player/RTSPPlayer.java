@@ -1,4 +1,4 @@
-package com.taike.rtspplayer;
+package com.taike.lib_rtp_player;
 
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
@@ -7,10 +7,11 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.Surface;
 
-import com.taike.rtspplayer.rtsp.CodecBufferInfoListener;
-import com.taike.rtspplayer.rtsp.RtspListener;
-import com.taike.rtspplayer.rtsp.RtspClient;
-import com.taike.rtspplayer.rtsp.PlayerThreadPool;
+
+import com.taike.lib_rtp_player.rtsp.CodecBufferInfoListener;
+import com.taike.lib_rtp_player.rtsp.PlayerThreadPool;
+import com.taike.lib_rtp_player.rtsp.RtspClient;
+import com.taike.lib_rtp_player.rtsp.RtspListener;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

@@ -5,7 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.LinearLayout;
 
-import com.taike.rtspplayer.rtsp.PlayerThreadPool;
+import com.taike.lib_rtp_player.XVideoView;
+import com.taike.lib_rtp_player.rtsp.PlayerThreadPool;
 
 import java.util.ArrayList;
 import java.util.List;

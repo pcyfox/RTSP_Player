@@ -1,10 +1,11 @@
-package com.taike.rtspplayer.rtsp;
+package com.taike.lib_rtp_player.rtsp;
 
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
 
-import com.taike.rtspplayer.BuildConfig;
+
+import com.taike.lib_rtp_player.BuildConfig;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -434,7 +435,6 @@ public class CommandsManager {
         if (DEBUG) Log.i(TAG, pause);
         return pause;
     }
-
 
 
     public String createGetParameter() {

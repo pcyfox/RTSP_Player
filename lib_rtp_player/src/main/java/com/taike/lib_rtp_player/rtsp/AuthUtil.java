@@ -1,4 +1,4 @@
-package com.taike.rtspplayer.rtsp;
+package com.taike.lib_rtp_player.rtsp;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

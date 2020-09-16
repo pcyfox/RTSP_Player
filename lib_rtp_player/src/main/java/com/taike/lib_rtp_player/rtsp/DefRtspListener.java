@@ -1,4 +1,4 @@
-package com.taike.rtspplayer.rtsp;
+package com.taike.lib_rtp_player.rtsp;
 
 /**
  * Created by pedro on 20/02/17.
