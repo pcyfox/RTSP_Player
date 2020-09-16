@@ -50,6 +50,12 @@ public class XVideoView extends LinearLayout {
         View tvStart = findViewById(R.id.tv_start);
         View tvStop = findViewById(R.id.tv_stop);
         View tvPause = findViewById(R.id.tv_pause);
+        int random = (int) (60009 * Math.random());
+        int por1 = 5002 + random;
+        int port2 = 5004 + random;
+
+        videoClientPorts = new int[]{por1, port2};
+        audioClientPorts = new int[]{por1 + 1, port2 + 1};
         if (BuildConfig.DEBUG) {
             findViewById(R.id.x_ll_buttons).setVisibility(View.VISIBLE);
         }
