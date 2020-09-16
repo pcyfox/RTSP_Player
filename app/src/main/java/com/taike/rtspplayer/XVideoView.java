@@ -49,6 +49,9 @@ public class XVideoView extends LinearLayout {
         View tvStart = findViewById(R.id.tv_start);
         View tvStop = findViewById(R.id.tv_stop);
         View tvPause = findViewById(R.id.tv_pause);
+        if (BuildConfig.DEBUG) {
+            findViewById(R.id.x_ll_buttons).setVisibility(View.VISIBLE);
+        }
         SurfaceView svVideo = findViewById(R.id.sv_video);
         svVideo.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override

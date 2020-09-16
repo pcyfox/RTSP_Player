@@ -155,7 +155,7 @@ public class RtspClient {
             String path = "/" + rtspMatcher.group(3);
             commandsManager.setUrl(host, port, path);
         }
-        ThreadPool.getInstance().submit(new Runnable() {
+        PlayerThreadPool.getInstance().submit(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -250,7 +250,7 @@ public class RtspClient {
     }
 
     public void play() {
-        ThreadPool.getInstance().submit(new Runnable() {
+        PlayerThreadPool.getInstance().submit(new Runnable() {
             @Override
             public void run() {
                 doPlay();
@@ -259,7 +259,7 @@ public class RtspClient {
     }
 
     public void pause() {
-        ThreadPool.getInstance().submit(new Runnable() {
+        PlayerThreadPool.getInstance().submit(new Runnable() {
             @Override
             public void run() {
                 doPause();
@@ -311,7 +311,7 @@ public class RtspClient {
 
     private void disconnect(final boolean clear) {
         streaming = false;
-        ThreadPool.getInstance().submit(new Runnable() {
+        PlayerThreadPool.getInstance().submit(new Runnable() {
             @Override
             public void run() {
                 try {

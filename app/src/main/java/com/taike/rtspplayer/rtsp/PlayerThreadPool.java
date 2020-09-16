@@ -5,11 +5,11 @@ import android.util.Log;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ThreadPool {
+public class PlayerThreadPool {
     private static final String TAG = "ThreadPool";
     private ExecutorService executorService;
 
-    private ThreadPool() {
+    private PlayerThreadPool() {
         if (executorService != null) {
             return;
         }
@@ -17,9 +17,9 @@ public class ThreadPool {
         executorService = Executors.newCachedThreadPool();
     }
 
-    private final static ThreadPool instance = new ThreadPool();
+    private final static PlayerThreadPool instance = new PlayerThreadPool();
 
-    public static ThreadPool getInstance() {
+    public static PlayerThreadPool getInstance() {
         return instance;
     }
 

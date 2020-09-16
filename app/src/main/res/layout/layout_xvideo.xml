@@ -10,10 +10,12 @@
         android:layout_height="match_parent" />
 
     <LinearLayout
+        android:id="@+id/x_ll_buttons"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="6dp">
+        android:padding="6dp"
+        android:visibility="gone">
 
         <Button
             android:id="@+id/tv_start"

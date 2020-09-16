@@ -10,7 +10,7 @@ import android.view.Surface;
 import com.taike.rtspplayer.rtsp.CodecBufferInfoListener;
 import com.taike.rtspplayer.rtsp.RtspListener;
 import com.taike.rtspplayer.rtsp.RtspClient;
-import com.taike.rtspplayer.rtsp.ThreadPool;
+import com.taike.rtspplayer.rtsp.PlayerThreadPool;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -56,7 +56,7 @@ public class RTSPPlayer {
             @Override
             public void onCanPlay(String sessionId, int[] ports) {
                 if (BuildConfig.DEBUG)
-                    Log.d(TAG, url + " onCanPlay() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
+                    Log.d(TAG, url + " onCanPlay() called with: sessionId = [" + sessionId + "], ports = [" + Arrays.toString(ports) + "]");
                 if (client != null && client.isStreaming()) {
                     isPause = false;
                 } else {
@@ -72,7 +72,7 @@ public class RTSPPlayer {
             @Override
             public void onPlayError(String sessionId, int[] ports) {
                 if (BuildConfig.DEBUG)
-                    Log.d(TAG, url + " onPlayError() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
+                    Log.d(TAG, url + " onPlayError() called with: sessionId = [" + sessionId + "], ports = [" + Arrays.toString(ports) + "]");
                 isPlaying = false;
                 if (rtspListener != null) {
                     rtspListener.onPlayError(sessionId, ports);
@@ -82,7 +82,7 @@ public class RTSPPlayer {
             @Override
             public void onPause(String sessionId, int[] ports) {
                 if (BuildConfig.DEBUG)
-                    Log.e(TAG, url + " onPause() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
+                    Log.e(TAG, url + " onPause() called with: sessionId = [" + sessionId + "], ports = [" + Arrays.toString(ports) + "]");
                 isPause = true;
                 if (rtspListener != null) {
                     rtspListener.onPause(sessionId, ports);
@@ -92,7 +92,7 @@ public class RTSPPlayer {
             @Override
             public void onPauseError(String sessionId, int[] ports) {
                 if (BuildConfig.DEBUG)
-                    Log.e(TAG, url + " onPauseError() called with: sessionId = [" + sessionId + "], ports = [" + ports + "]");
+                    Log.e(TAG, url + " onPauseError() called with: sessionId = [" + sessionId + "], ports = [" + Arrays.toString(ports) + "]");
                 isPause = false;
                 if (rtspListener != null) {
                     rtspListener.onPlayError(sessionId, ports);
@@ -278,7 +278,7 @@ public class RTSPPlayer {
     }
 
     private void submit(Runnable runnable) {
-        ThreadPool.getInstance().submit(runnable);
+        PlayerThreadPool.getInstance().submit(runnable);
     }
 
     public byte[] decodeValue(ByteBuffer bytes) {

@@ -5,7 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.LinearLayout;
 
-import com.taike.rtspplayer.rtsp.ThreadPool;
+import com.taike.rtspplayer.rtsp.PlayerThreadPool;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,6 +91,6 @@ public class MultiVideoActivity extends AppCompatActivity {
         for (XVideoView xVideoView : videoViews) {
             xVideoView.release();
         }
-        ThreadPool.getInstance().shutDown();
+        PlayerThreadPool.getInstance().shutDown();
     }
 }
